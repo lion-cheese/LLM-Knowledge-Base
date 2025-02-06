@@ -3,7 +3,11 @@ from langchain.callbacks.manager import CallbackManager
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from knowledgebase import PDFKnowledgeBase, DOCUMENT_SOURCE_DIRECTORY
 from langchain.chains import RetrievalQA
-from langchain.embeddings import OllamaEmbeddings
+#from langchain.embeddings import OllamaEmbeddings
+from langchain_ollama import OllamaEmbeddings
+
+# import os
+# print(os.path.exists(DOCUMENT_SOURCE_DIRECTORY))
 
 # Set up a callback manager for streaming output.
 callback_manager = CallbackManager([StreamingStdOutCallbackHandler()])
@@ -17,7 +21,7 @@ llm = OllamaLLM(
 )
 
 # Instantiate the embeddings object.
-embeddings = OllamaEmbeddings()
+embeddings = OllamaEmbeddings(model="mistral")
 
 # Create an instance of your knowledge base using the consistent parameter name.
 kb = PDFKnowledgeBase(pdf_source_folder_path=DOCUMENT_SOURCE_DIRECTORY)
@@ -40,7 +44,8 @@ while True:
     if query.lower() == 'exit':
         break
 
-    result = qa_chain(query)
+    # result = qa_chain(query)
+    result = qa_chain.invoke(query)
     answer = result['result']
     docs = result['source_documents']
 
