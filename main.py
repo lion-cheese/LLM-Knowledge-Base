@@ -16,7 +16,7 @@ callback_manager = CallbackManager([StreamingStdOutCallbackHandler()])
 llm = OllamaLLM(
     model="mistral",
     api_base="http://localhost:11434",
-    streaming=True,
+    streaming=False,
     callback_manager=callback_manager
 )
 
@@ -29,14 +29,20 @@ kb = PDFKnowledgeBase(pdf_source_folder_path=DOCUMENT_SOURCE_DIRECTORY)
 # Retrieve the retriever from your persistent vector database.
 retriever = kb.return_retriever_from_persistant_vector_db(embedder=embeddings)
 
+# print("🔍 DEBUG: Checking retriever and LLM before running RetrievalQA")
+# print(f"✅ Retriever Type: {type(retriever)}")
+# print(f"✅ LLM Type: {type(llm)}")
+
 # Create the RetrievalQA chain to connect the LLM with the retriever.
 qa_chain = RetrievalQA.from_chain_type(
     llm=llm,
     chain_type='stuff',
     retriever=retriever,
     return_source_documents=True,
-    verbose=True
+    verbose=False
 )
+
+# print("✅ RetrievalQA successfully created!")
 
 print("Enter your queries (type 'exit' to quit):")
 while True:
@@ -45,12 +51,13 @@ while True:
         break
 
     # result = qa_chain(query)
+    print("\nAnswer:")
     result = qa_chain.invoke(query)
     answer = result['result']
     docs = result['source_documents']
 
-    print("\nAnswer:")
-    print(answer)
+    # print("\nAnswer:")
+    # print(answer)
     print("\n" + "#" * 30 + " Source " + "#" * 30)
 
     for document in docs:

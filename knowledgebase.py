@@ -21,7 +21,7 @@ CHROMA_SETTINGS = Settings(
 )
 TARGET_SOURCE_CHUNKS = 4
 CHUNK_SIZE = 500
-CHUNK_OVERLAP = 50
+CHUNK_OVERLAP = 10
 HIDE_SOURCE_DOCUMENTS = False
 
 class PDFKnowledgeBase:
@@ -66,10 +66,21 @@ class PDFKnowledgeBase:
         return loaded_docs
 
 
+    # def split_documents(self, loaded_docs):
+    #     splitter = RecursiveCharacterTextSplitter(chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)
+    #     chunked_docs = splitter.split_documents(loaded_docs)
+    #     return chunked_docs
+    
     def split_documents(self, loaded_docs):
         splitter = RecursiveCharacterTextSplitter(chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)
         chunked_docs = splitter.split_documents(loaded_docs)
-        return chunked_docs
+
+        # Remove duplicate chunks
+        unique_chunks = list({doc.page_content: doc for doc in chunked_docs}.values())
+
+        print(f"✅ Processed {len(unique_chunks)} unique chunks after deduplication.")
+        
+        return unique_chunks
     
     # def convert_document_to_embeddings(self, chunked_docs, embedder):
     #     vector_db = Chroma(
@@ -101,7 +112,8 @@ class PDFKnowledgeBase:
             # client_settings=CHROMA_SETTINGS
             client_settings=Settings(anonymized_telemetry=False)
         )
-        return vector_db.as_retriever(search_kwargs={"k": TARGET_SOURCE_CHUNKS})
+        # return vector_db.as_retriever(search_kwargs={"k": TARGET_SOURCE_CHUNKS})
+        return vector_db.as_retriever(search_kwargs={"k": 2})  # ✅ Retrieves fewer duplicate results
     
     def initiate_document_injetion_pipeline(self):
         # loaded_pdfs = self.load_pdfs()
