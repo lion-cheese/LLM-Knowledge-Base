@@ -3,11 +3,7 @@ from langchain.callbacks.manager import CallbackManager
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from knowledgebase import PDFKnowledgeBase, DOCUMENT_SOURCE_DIRECTORY
 from langchain.chains import RetrievalQA
-#from langchain.embeddings import OllamaEmbeddings
 from langchain_ollama import OllamaEmbeddings
-
-# import os
-# print(os.path.exists(DOCUMENT_SOURCE_DIRECTORY))
 
 # Set up a callback manager for streaming output.
 callback_manager = CallbackManager([StreamingStdOutCallbackHandler()])
@@ -29,10 +25,6 @@ kb = PDFKnowledgeBase(pdf_source_folder_path=DOCUMENT_SOURCE_DIRECTORY)
 # Retrieve the retriever from your persistent vector database.
 retriever = kb.return_retriever_from_persistant_vector_db(embedder=embeddings)
 
-# print("🔍 DEBUG: Checking retriever and LLM before running RetrievalQA")
-# print(f"✅ Retriever Type: {type(retriever)}")
-# print(f"✅ LLM Type: {type(llm)}")
-
 # Create the RetrievalQA chain to connect the LLM with the retriever.
 qa_chain = RetrievalQA.from_chain_type(
     llm=llm,
@@ -42,26 +34,23 @@ qa_chain = RetrievalQA.from_chain_type(
     verbose=False
 )
 
-# print("✅ RetrievalQA successfully created!")
-
 print("Enter your queries (type 'exit' to quit):")
 while True:
     query = input("What's on your mind: ")
     if query.lower() == 'exit':
         break
 
-    # result = qa_chain(query)
     print("\nAnswer:")
     result = qa_chain.invoke(query)
     answer = result['result']
     docs = result['source_documents']
+    print("\n")
 
-    # print("\nAnswer:")
-    # print(answer)
-    print("\n" + "#" * 30 + " Source " + "#" * 30)
+    # Uncomment if you want to print the source
+    # print("\n" + "#" * 30 + " Source " + "#" * 30)
 
-    for document in docs:
-        source = document.metadata.get("source", "Unknown")
-        print(f"\n> SOURCE: {source}:")
-        print(document.page_content)
-    print("#" * 70 + "\n")
+    # for document in docs:
+    #     source = document.metadata.get("source", "Unknown")
+    #     print(f"\n> SOURCE: {source}:")
+    #     print(document.page_content)
+    # print("#" * 70 + "\n")
