@@ -2,7 +2,8 @@ import os
 from typing import Optional
 from chromadb.config import Settings
 from langchain_chroma import Chroma
-from langchain_community.document_loaders import DirectoryLoader, TextLoader, UnstructuredFileLoader
+# from langchain_community.document_loaders import DirectoryLoader, TextLoader, UnstructuredFileLoader
+from langchain_community.document_loaders import TextLoader, PyPDFLoader, UnstructuredFileLoader, CSVLoader
 from langchain_ollama import OllamaEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
@@ -22,29 +23,79 @@ class PDFKnowledgeBase:
     def __init__(self, pdf_source_folder_path: str) -> None:
         self.pdf_source_folder_path = pdf_source_folder_path
 
+    # def load_files(self):
+    #     # Print all files in the directory for debugging
+    #     all_files = os.listdir(self.pdf_source_folder_path)
+    #     print(f"📂 Found files in directory: {all_files}")  
+
+    #     # Use DirectoryLoader to load all file types
+    #     loader = DirectoryLoader(
+    #         self.pdf_source_folder_path, 
+    #         glob="*",  # Load all files, not just PDFs
+    #         loader_cls=UnstructuredFileLoader  # This auto-detects file types
+    #     )
+
+    #     loaded_docs = loader.load()
+    #     print(f"✅ Loaded {len(loaded_docs)} documents from {self.pdf_source_folder_path}")
+
+    #     if not loaded_docs:
+    #         raise ValueError("❌ ERROR: No files were loaded! Ensure the directory contains valid files.")
+
+    #     return loaded_docs
+    
     def load_files(self):
-        # Print all files in the directory for debugging
         all_files = os.listdir(self.pdf_source_folder_path)
         print(f"📂 Found files in directory: {all_files}")  
 
-        # Use DirectoryLoader to load all file types
-        loader = DirectoryLoader(
-            self.pdf_source_folder_path, 
-            glob="*",  # Load all files, not just PDFs
-            loader_cls=UnstructuredFileLoader  # This auto-detects file types
-        )
+        loaded_docs = []
+        
+        for file in all_files:
+            file_path = os.path.join(self.pdf_source_folder_path, file)
+            
+            # Choose the right loader
+            if file.endswith(".pdf"):
+                loader = PyPDFLoader(file_path)
+            elif file.endswith(".txt"):
+                loader = TextLoader(file_path, encoding="utf-8")  # Ensure proper encoding
+            elif file.endswith(".csv"):
+                loader = CSVLoader(file_path)
+            else:
+                loader = UnstructuredFileLoader(file_path)  # Fallback for other types
 
-        loaded_docs = loader.load()
-        print(f"✅ Loaded {len(loaded_docs)} documents from {self.pdf_source_folder_path}")
+            try:
+                docs = loader.load()
+                print(f"✅ Loaded {len(docs)} documents from {file}")
+
+                # Debug: Print the first 500 characters of extracted text
+                for doc in docs:
+                    print(f"\n🔍 Extracted Preview from {file}:\n{doc.page_content[:500]}\n{'-'*80}")
+
+                loaded_docs.extend(docs)
+
+            except Exception as e:
+                print(f"❌ ERROR loading {file}: {e}")
 
         if not loaded_docs:
-            raise ValueError("❌ ERROR: No files were loaded! Ensure the directory contains valid files.")
+            raise ValueError("❌ ERROR: No valid documents were loaded!")
 
         return loaded_docs
-
+    
     def split_documents(self, loaded_docs):
-        splitter = RecursiveCharacterTextSplitter(chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)
+        splitter = RecursiveCharacterTextSplitter(
+            chunk_size=CHUNK_SIZE, 
+            chunk_overlap=CHUNK_OVERLAP,
+            separators=["\n\n", "\n", " ", ""],  # Ensures natural breaks
+            length_function=len,  # Ensures words aren't cut mid-sentence
+        )
+        
         chunked_docs = splitter.split_documents(loaded_docs)
+
+        # Debug: Print some chunk previews
+        # for i, doc in enumerate(chunked_docs[:5]):  # Print first 5 chunks
+        #     print(f"\n📝 Chunk {i+1} Preview:\n{doc.page_content[:500]}\n{'-'*80}")
+
+        # print(f"✅ Created {len(chunked_docs)} document chunks.")
+
         return chunked_docs
 
     def convert_document_to_embeddings(self, chunked_docs, embedder):
